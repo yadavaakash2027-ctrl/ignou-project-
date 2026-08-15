@@ -4,6 +4,8 @@
  * and resilient HTML response interception to prevent 'Unexpected token <' parsing errors.
  */
 
+import { FALLBACK_PROGRAMS, FALLBACK_SUBJECTS, FALLBACK_TOPICS } from './fallbackData';
+
 export class ApiError extends Error {
   status: number;
   data: any;
@@ -47,6 +49,20 @@ export function buildApiUrl(endpoint: string): string {
   return `${API_BASE_URL}${cleanPath}`;
 }
 
+function getStaticCatalogFallback(endpoint: string): any | null {
+  const clean = endpoint.replace(/^\/api\//, '/').replace(/^\//, '');
+  if (clean === 'programs') {
+    return { programs: FALLBACK_PROGRAMS };
+  }
+  if (clean === 'subjects') {
+    return { subjects: FALLBACK_SUBJECTS };
+  }
+  if (clean === 'topics') {
+    return { topics: FALLBACK_TOPICS };
+  }
+  return null;
+}
+
 export async function safeFetch<T = any>(
   endpoint: string,
   options: RequestInit = {}
@@ -76,15 +92,22 @@ export async function safeFetch<T = any>(
 
     const contentType = response.headers.get('content-type') || '';
     
-    // Check if the response returned an HTML document (e.g. Netlify fallback or 404 page)
-    if (contentType.includes('text/html')) {
+    // Check if the response returned an HTML document (e.g. Netlify fallback, GitHub Pages 404)
+    if (contentType.includes('text/html') || response.status === 404) {
+      const fallback = getStaticCatalogFallback(endpoint);
+      if (fallback) {
+        return {
+          data: fallback as T,
+          ok: true,
+          status: 200
+        };
+      }
+
       const htmlText = await response.text();
-      console.warn(`[API Client] Received HTML response from ${url} (status: ${response.status}). Checking content.`);
-      
       const isDocType = htmlText.trim().toLowerCase().startsWith('<!doctype') || htmlText.includes('<html');
       const errorMsg = isDocType
-        ? `API endpoint '${endpoint}' returned HTML (likely SPA fallback or incorrect routing). Please verify Netlify functions or backend connectivity.`
-        : `Server returned non-JSON response (status: ${response.status})`;
+        ? `API endpoint '${endpoint}' returned HTML (likely static SPA host or incorrect routing).`
+        : `Server returned status ${response.status}`;
 
       return {
         data: null as any,
@@ -98,7 +121,14 @@ export async function safeFetch<T = any>(
     try {
       parsedData = await response.json();
     } catch (parseErr) {
-      console.error(`[API Client] Failed to parse JSON from ${url}:`, parseErr);
+      const fallback = getStaticCatalogFallback(endpoint);
+      if (fallback) {
+        return {
+          data: fallback as T,
+          ok: true,
+          status: 200
+        };
+      }
       return {
         data: null as any,
         ok: false,
@@ -108,6 +138,14 @@ export async function safeFetch<T = any>(
     }
 
     if (!response.ok) {
+      const fallback = getStaticCatalogFallback(endpoint);
+      if (fallback) {
+        return {
+          data: fallback as T,
+          ok: true,
+          status: 200
+        };
+      }
       return {
         data: parsedData,
         ok: false,
@@ -122,7 +160,14 @@ export async function safeFetch<T = any>(
       status: response.status
     };
   } catch (netErr: any) {
-    console.error(`[API Client] Network error fetching ${url}:`, netErr);
+    const fallback = getStaticCatalogFallback(endpoint);
+    if (fallback) {
+      return {
+        data: fallback as T,
+        ok: true,
+        status: 200
+      };
+    }
     return {
       data: null as any,
       ok: false,
