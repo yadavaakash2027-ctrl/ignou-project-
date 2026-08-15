@@ -1,0 +1,6 @@
+{
+  "name": "IGNOU Project Hub",
+  "description": "Production-ready academic project management, topic allocation, multi-chapter generation, PDF/DOCX compiler, and student/admin portal for IGNOU students.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
