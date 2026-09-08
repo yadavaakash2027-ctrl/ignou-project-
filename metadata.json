@@ -1,6 +1,6 @@
 {
   "name": "IGNOU Project Hub",
-  "description": "Production-ready academic project management, topic allocation, multi-chapter generation, PDF/DOCX compiler, and student/admin portal for IGNOU students.",
+  "description": "Production-ready academic project management platform featuring the official 11-section IGNOU Project Synopsis Generator module, direct UPI payment verification, and PDF/DOCX downloads.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

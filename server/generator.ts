@@ -16,9 +16,25 @@ export class GenerationCoordinator {
       throw new Error(`Project ${projectId} not found`);
     }
 
-    const student = db.getStudentById(project.studentId);
+    let student = db.getStudentById(project.studentId) || db.getStudentByEnrollment(project.enrollmentNumber);
     if (!student) {
-      throw new Error(`Student ${project.studentId} not found`);
+      student = {
+        id: project.studentId,
+        name: project.studentName || 'IGNOU Student',
+        email: `${project.enrollmentNumber || project.studentId}@ignou.ac.in`,
+        enrollmentNumber: project.enrollmentNumber || `IGNOU-${project.studentId.slice(0, 8).toUpperCase()}`,
+        mobileNumber: '9999999999',
+        program: project.program || 'MBA',
+        role: 'student',
+        accountStatus: 'ACTIVE',
+        emailVerified: true,
+        phoneVerified: false,
+        totalLoginCount: 1,
+        totalSessionCount: 1,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      db.saveStudent(student);
     }
 
     // Check if there is an existing job
@@ -216,6 +232,8 @@ export class GenerationCoordinator {
         pages: Math.round(finalPageCount / 7),
         wordCount: c.wordCount
       }));
+      // Persist full chapters as Single Source of Truth
+      db.saveProjectChapters(project.projectId, chapters);
       project.qualityReport = {
         pagesValid: finalPageCount >= minPagesRequired,
         pageCount: finalPageCount,

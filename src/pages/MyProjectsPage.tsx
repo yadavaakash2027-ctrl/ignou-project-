@@ -15,17 +15,34 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { ProjectRecord } from '../types';
 import { GenerationProgressModal } from '../components/GenerationProgressModal';
-import { safeFetch, buildApiUrl } from '../lib/api';
+import { StudentAuthDownloadModal } from '../components/StudentAuthDownloadModal';
+import { safeFetch } from '../lib/api';
+import { downloadProjectFile } from '../lib/downloadService';
 
 interface MyProjectsPageProps {
   onNavigate: (page: string, params?: Record<string, any>) => void;
 }
 
 export const MyProjectsPage: React.FC<MyProjectsPageProps> = ({ onNavigate }) => {
-  const { user, getAuthHeaders } = useAuth();
+  const { user } = useAuth();
   const [projects, setProjects] = useState<ProjectRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeModalProjectId, setActiveModalProjectId] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [authDownloadModal, setAuthDownloadModal] = useState<{
+    open: boolean;
+    projectId: string;
+    courseCode: string;
+    topicTitle: string;
+    fileType: 'pdf' | 'docx';
+  }>({
+    open: false,
+    projectId: '',
+    courseCode: '',
+    topicTitle: '',
+    fileType: 'pdf'
+  });
 
   const fetchProjects = async () => {
     setLoading(true);
@@ -45,26 +62,37 @@ export const MyProjectsPage: React.FC<MyProjectsPageProps> = ({ onNavigate }) =>
     fetchProjects();
   }, []);
 
-  const handleDownload = (projectId: string, type: 'pdf' | 'docx', courseCode: string) => {
-    const url = buildApiUrl(`/projects/${projectId}/download/${type}`);
-    fetch(url, { headers: getAuthHeaders() })
-      .then((res) => {
-        if (!res.ok) throw new Error('Download failed');
-        return res.blob();
-      })
-      .then((blob) => {
-        const blobUrl = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = `IGNOU_${courseCode}_${user?.enrollmentNumber || 'Draft'}.${type}`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(blobUrl);
-      })
-      .catch((err) => {
-        alert(err.message || 'Download error');
+  const executeDownload = async (projectId: string, type: 'pdf' | 'docx', courseCode: string, topicTitle?: string) => {
+    setDownloadError(null);
+    setDownloadingId(`${projectId}_${type}`);
+    try {
+      await downloadProjectFile({
+        projectId,
+        fileType: type,
+        courseCode,
+        topicTitle,
+        enrollmentNumber: user?.enrollmentNumber
       });
+    } catch (err: any) {
+      setDownloadError(err.message || 'Failed to download project file.');
+      alert(err.message || 'Failed to download project file.');
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  const handleDownload = (projectId: string, type: 'pdf' | 'docx', courseCode: string, topicTitle?: string) => {
+    if (!user) {
+      setAuthDownloadModal({
+        open: true,
+        projectId,
+        courseCode,
+        topicTitle: topicTitle || 'IGNOU Dissertation',
+        fileType: type
+      });
+      return;
+    }
+    executeDownload(projectId, type, courseCode, topicTitle);
   };
 
   return (
@@ -152,14 +180,20 @@ export const MyProjectsPage: React.FC<MyProjectsPageProps> = ({ onNavigate }) =>
                     {isReady && (
                       <>
                         <button
+                          onClick={() => onNavigate('synopsis-generator', { topicId: project.topicId, courseCode: project.courseCode, program: project.program, title: project.topicTitle })}
+                          className="px-4 py-2.5 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 text-xs font-bold shadow-xs flex items-center gap-1.5 transition hover:bg-blue-100 cursor-pointer"
+                        >
+                          <Sparkles className="w-3.5 h-3.5" /> Synopsis Proposal
+                        </button>
+                        <button
                           onClick={() => handleDownload(project.projectId, 'pdf', project.courseCode)}
-                          className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md flex items-center gap-1.5 transition"
+                          className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md flex items-center gap-1.5 transition cursor-pointer"
                         >
                           <Download className="w-3.5 h-3.5" /> Download PDF ({project.pageCount} Pages)
                         </button>
                         <button
                           onClick={() => handleDownload(project.projectId, 'docx', project.courseCode)}
-                          className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 text-white text-xs font-bold shadow-md flex items-center gap-1.5 transition"
+                          className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 text-white text-xs font-bold shadow-md flex items-center gap-1.5 transition cursor-pointer"
                         >
                           <FileText className="w-3.5 h-3.5 text-blue-300" /> Download DOCX
                         </button>
@@ -229,6 +263,23 @@ export const MyProjectsPage: React.FC<MyProjectsPageProps> = ({ onNavigate }) =>
           projectId={activeModalProjectId}
           onClose={() => setActiveModalProjectId(null)}
           onRefreshProject={fetchProjects}
+        />
+      )}
+
+      {/* Student Auth Download Modal */}
+      {authDownloadModal.open && (
+        <StudentAuthDownloadModal
+          isOpen={authDownloadModal.open}
+          onClose={() => setAuthDownloadModal(prev => ({ ...prev, open: false }))}
+          projectId={authDownloadModal.projectId}
+          courseCode={authDownloadModal.courseCode}
+          topicTitle={authDownloadModal.topicTitle}
+          fileType={authDownloadModal.fileType}
+          onSuccess={() => {
+            const { projectId, fileType, courseCode, topicTitle } = authDownloadModal;
+            setAuthDownloadModal(prev => ({ ...prev, open: false }));
+            executeDownload(projectId, fileType, courseCode, topicTitle);
+          }}
         />
       )}
     </div>

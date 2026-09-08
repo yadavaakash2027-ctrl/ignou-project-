@@ -59,7 +59,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
     },
     {
       q: 'How does Atomic Topic Allocation work?',
-      a: 'To maintain academic integrity and prevent duplicate submissions across IGNOU study centers, each topic is locked atomically upon reservation and permanently marked as USED once generated for a student. No two students ever receive the exact same project topic.'
+      a: 'To maintain academic integrity and prevent duplicate submissions across IGNOU study centers, each topic is assigned exclusively upon reservation and permanently marked as COMPLETED once generated for a student. No two students receive the same project dissertation.'
     },
     {
       q: 'Are Guide Approval Certificate and Student Declaration included?',
@@ -217,6 +217,40 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
         </div>
       </section>
 
+      {/* SYNOPSIS & PROPOSAL GENERATOR SPOTLIGHT BANNER */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-900 rounded-3xl p-8 sm:p-10 text-white shadow-xl flex flex-col lg:flex-row items-center justify-between gap-8">
+          <div className="space-y-4 max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/30 border border-blue-300/30 text-blue-200 text-xs font-semibold">
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              <span>Official 16-Point Research Blueprint & Supervisor Form</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+              Instant IGNOU Synopsis Generator
+            </h2>
+            <p className="text-sm text-blue-100 leading-relaxed">
+              Generate a complete, structured, topic-specific project proposal with Review of Literature matrix, Hypotheses, Methodology, Chapterization, and an editable Guide Bio-Data Form.
+            </p>
+            <div className="flex flex-wrap gap-2 text-xs font-medium text-blue-200 pt-1">
+              <span className="px-2.5 py-1 rounded-md bg-white/10">16 Structured Points</span>
+              <span className="px-2.5 py-1 rounded-md bg-white/10">Real APA 7th Citations</span>
+              <span className="px-2.5 py-1 rounded-md bg-white/10">Editable Guide Bio-Data</span>
+              <span className="px-2.5 py-1 rounded-md bg-white/10">PDF & DOCX Export</span>
+            </div>
+          </div>
+          <div className="shrink-0 flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+            <button
+              onClick={() => onNavigate('synopsis-generator')}
+              className="px-6 py-3.5 bg-white text-blue-900 hover:bg-blue-50 rounded-xl font-extrabold text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <FileCheck className="w-4 h-4 text-blue-700" />
+              <span>Generate My Synopsis Now</span>
+              <ArrowRight className="w-4 h-4 text-blue-700" />
+            </button>
+          </div>
+        </div>
+      </section>
+
       {/* 3. 4-STEP ACADEMIC GENERATION WORKFLOW */}
       <section className="bg-slate-50 dark:bg-slate-800/50 py-16 px-4 sm:px-6 lg:px-8 border-y border-slate-200 dark:border-slate-800">
         <div className="max-w-7xl mx-auto">
@@ -235,10 +269,10 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                 1
               </div>
               <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2">
-                Atomic Topic Lock
+                Unique Topic Allocation
               </h3>
               <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                Unique research topics are locked instantaneously to prevent duplicate assignment across regional centers.
+                Dedicated research topics are allocated directly to each candidate to prevent overlap across regional centers.
               </p>
             </div>
 

@@ -3,6 +3,8 @@ import path from 'path';
 import dotenv from 'dotenv';
 import { createServer as createViteServer } from 'vite';
 import { apiRouter } from './server/routes';
+import { initInsForgeDatabase, syncAllStudentsToInsForge } from './server/insforge';
+import { db } from './server/db';
 
 dotenv.config();
 
@@ -14,8 +16,16 @@ async function startServer() {
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-  // API Routes mount FIRST
+  // API Routes mount FIRST (both with /api prefix and direct fallback)
   app.use('/api', apiRouter);
+  app.use('/auth', apiRouter);
+  app.use('/projects', apiRouter);
+  app.use('/topics', apiRouter);
+  app.use('/programs', apiRouter);
+  app.use('/subjects', apiRouter);
+  app.use('/payment', apiRouter);
+  app.use('/admin', apiRouter);
+  app.use('/jobs', apiRouter);
 
   // Vite middleware for development vs static for production
   if (process.env.NODE_ENV !== 'production') {
@@ -34,6 +44,24 @@ async function startServer() {
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`[IGNOU Project Hub] Server running on http://0.0.0.0:${PORT}`);
+
+    // Initialize InsForge PostgreSQL Database table and sync students
+    initInsForgeDatabase()
+      .then((ok) => {
+        if (ok) {
+          const students = db.getStudents();
+          if (students.length > 0) {
+            syncAllStudentsToInsForge(students).then(({ synced, total }) => {
+              console.log(`[InsForge] Automatically synchronized ${synced}/${total} students to InsForge PostgreSQL`);
+            }).catch((err) => {
+              console.warn('[InsForge Sync Warning]:', err?.message);
+            });
+          }
+        }
+      })
+      .catch((err) => {
+        console.warn('[InsForge Startup Warning]:', err?.message);
+      });
   });
 }
 

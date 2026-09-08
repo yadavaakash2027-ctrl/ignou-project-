@@ -31,6 +31,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, onNavigate }) => {
 
   const navLinks = [
     { id: 'home', label: 'Home', icon: BookOpen },
+    { id: 'synopsis-generator', label: 'Synopsis Generator', icon: Sparkles },
     { id: 'projects', label: 'Projects & Topics', icon: FileText },
     { id: 'categories', label: 'Programs', icon: Layers },
     { id: 'subjects', label: 'Subjects', icon: GraduationCap },
@@ -187,6 +188,14 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, onNavigate }) => {
                         >
                           <FolderDown className="w-4 h-4 text-emerald-500" />
                           My Projects & Downloads
+                        </button>
+                        <button
+                          id="my-synopses-link"
+                          onClick={() => handleNav('synopsis-generator')}
+                          className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2"
+                        >
+                          <Sparkles className="w-4 h-4 text-blue-500" />
+                          Synopsis & Proposal Generator
                         </button>
                       </>
                     )}

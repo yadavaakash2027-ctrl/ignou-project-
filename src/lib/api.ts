@@ -30,6 +30,10 @@ export function getAuthToken(): string | null {
   }
 }
 
+export async function getFreshOrStoredAuthToken(): Promise<string | null> {
+  return getAuthToken();
+}
+
 export function buildApiUrl(endpoint: string): string {
   // If endpoint is already a full URL, return as-is
   if (endpoint.startsWith('http://') || endpoint.startsWith('https://')) {
@@ -51,33 +55,46 @@ export function buildApiUrl(endpoint: string): string {
 
 function getStaticCatalogFallback(endpoint: string): any | null {
   const clean = endpoint.replace(/^\/api\//, '/').replace(/^\//, '');
-  if (clean === 'programs') {
+  if (clean === 'programs' || clean.startsWith('programs')) {
     return { programs: FALLBACK_PROGRAMS };
   }
-  if (clean === 'subjects') {
+  if (clean === 'subjects' || clean.startsWith('subjects')) {
     return { subjects: FALLBACK_SUBJECTS };
   }
-  if (clean === 'topics') {
+  if (clean === 'topics' || clean.startsWith('topics')) {
     return { topics: FALLBACK_TOPICS };
+  }
+  if (clean === 'projects' || clean === 'projects/') {
+    return { projects: [] };
   }
   return null;
 }
 
 export async function safeFetch<T = any>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit & { _isRetry?: boolean } = {}
 ): Promise<{ data: T; ok: boolean; status: number; error?: string }> {
   const url = buildApiUrl(endpoint);
   const token = getAuthToken();
 
   const headers: Record<string, string> = {
     Accept: 'application/json',
-    ...(options.headers as Record<string, string> || {})
+    ...((options.headers as Record<string, string>) || {})
   };
 
   if (token && !headers['Authorization']) {
     headers['Authorization'] = `Bearer ${token}`;
   }
+
+  // Include student profile fallback headers if available
+  try {
+    const cachedProfile = localStorage.getItem('ignou_student_profile');
+    if (cachedProfile) {
+      const parsed = JSON.parse(cachedProfile);
+      if (parsed.id && !headers['x-student-id']) headers['x-student-id'] = parsed.id;
+      if (parsed.email && !headers['x-user-email']) headers['x-user-email'] = parsed.email;
+    }
+  } catch {}
 
   // Only set Content-Type to application/json if body is not FormData or already specified
   if (options.body && typeof options.body === 'string' && !headers['Content-Type']) {
@@ -90,10 +107,91 @@ export async function safeFetch<T = any>(
       headers
     });
 
+    // If server refreshed the auth token, update it immediately in localStorage
+    const refreshedToken = response.headers.get('x-refreshed-token');
+    if (refreshedToken) {
+      try {
+        localStorage.setItem('ignou_auth_token', refreshedToken);
+      } catch {}
+    }
+
     const contentType = response.headers.get('content-type') || '';
     
-    // Check if the response returned an HTML document (e.g. Netlify fallback, GitHub Pages 404)
-    if (contentType.includes('text/html') || response.status === 404) {
+    // If the response is JSON, parse and inspect it first
+    if (contentType.includes('application/json')) {
+      let parsedData: any;
+      try {
+        parsedData = await response.json();
+      } catch {
+        parsedData = null;
+      }
+
+      if (response.ok) {
+        return {
+          data: parsedData as T,
+          ok: true,
+          status: response.status
+        };
+      }
+
+      // If 401 unauthorized due to expired token and not already retrying, attempt transparent refresh
+      if (response.status === 401 && !options._isRetry && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/refresh-session')) {
+        try {
+          const cachedProfileStr = localStorage.getItem('ignou_student_profile');
+          if (cachedProfileStr) {
+            const cachedProfile = JSON.parse(cachedProfileStr);
+            const refreshRes = await fetch(buildApiUrl('/auth/refresh-session'), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+              body: JSON.stringify({
+                studentId: cachedProfile.id,
+                email: cachedProfile.email,
+                enrollmentNumber: cachedProfile.enrollmentNumber,
+                token
+              })
+            });
+
+            if (refreshRes.ok) {
+              const refreshJson = await refreshRes.json();
+              if (refreshJson.token) {
+                localStorage.setItem('ignou_auth_token', refreshJson.token);
+                // Retry the original request with the fresh token
+                return await safeFetch<T>(endpoint, {
+                  ...options,
+                  _isRetry: true,
+                  headers: {
+                    ...headers,
+                    Authorization: `Bearer ${refreshJson.token}`
+                  }
+                });
+              }
+            }
+          }
+        } catch {
+          // If refresh attempt fails, proceed with standard error response
+        }
+      }
+
+      // If not ok (e.g. 400, 401, 403, 404)
+      const fallback = getStaticCatalogFallback(endpoint);
+      if (fallback && response.status === 404) {
+        return {
+          data: fallback as T,
+          ok: true,
+          status: 200
+        };
+      }
+
+      return {
+        data: parsedData,
+        ok: false,
+        status: response.status,
+        error: parsedData?.error || parsedData?.message || `Request failed with status ${response.status}`
+      };
+    }
+
+    // If the response returned HTML (e.g. static SPA host or incorrect routing)
+    if (contentType.includes('text/html')) {
       const fallback = getStaticCatalogFallback(endpoint);
       if (fallback) {
         return {
@@ -106,7 +204,7 @@ export async function safeFetch<T = any>(
       const htmlText = await response.text();
       const isDocType = htmlText.trim().toLowerCase().startsWith('<!doctype') || htmlText.includes('<html');
       const errorMsg = isDocType
-        ? `API endpoint '${endpoint}' returned HTML (likely static SPA host or incorrect routing).`
+        ? `API endpoint '${endpoint}' returned HTML (SPA router fallback).`
         : `Server returned status ${response.status}`;
 
       return {
@@ -117,29 +215,18 @@ export async function safeFetch<T = any>(
       };
     }
 
+    // Try text or generic parse
     let parsedData: any;
     try {
       parsedData = await response.json();
-    } catch (parseErr) {
-      const fallback = getStaticCatalogFallback(endpoint);
-      if (fallback) {
-        return {
-          data: fallback as T,
-          ok: true,
-          status: 200
-        };
-      }
-      return {
-        data: null as any,
-        ok: false,
-        status: response.status,
-        error: `Invalid JSON returned from server at ${endpoint}`
-      };
+    } catch {
+      const text = await response.text();
+      parsedData = { text };
     }
 
     if (!response.ok) {
       const fallback = getStaticCatalogFallback(endpoint);
-      if (fallback) {
+      if (fallback && response.status === 404) {
         return {
           data: fallback as T,
           ok: true,
@@ -177,31 +264,38 @@ export async function safeFetch<T = any>(
   }
 }
 
+
+export const safeGet = <T = any>(endpoint: string, headers?: Record<string, string>) =>
+  safeFetch<T>(endpoint, { method: 'GET', headers });
+
+export const safePost = <T = any>(endpoint: string, body?: any, headers?: Record<string, string>) =>
+  safeFetch<T>(endpoint, {
+    method: 'POST',
+    body: body !== undefined ? (typeof body === 'string' ? body : JSON.stringify(body)) : undefined,
+    headers
+  });
+
+export const safePut = <T = any>(endpoint: string, body?: any, headers?: Record<string, string>) =>
+  safeFetch<T>(endpoint, {
+    method: 'PUT',
+    body: body !== undefined ? (typeof body === 'string' ? body : JSON.stringify(body)) : undefined,
+    headers
+  });
+
+export const safePatch = <T = any>(endpoint: string, body?: any, headers?: Record<string, string>) =>
+  safeFetch<T>(endpoint, {
+    method: 'PATCH',
+    body: body !== undefined ? (typeof body === 'string' ? body : JSON.stringify(body)) : undefined,
+    headers
+  });
+
+export const safeDelete = <T = any>(endpoint: string, headers?: Record<string, string>) =>
+  safeFetch<T>(endpoint, { method: 'DELETE', headers });
+
 export const api = {
-  get: <T = any>(endpoint: string, headers?: Record<string, string>) =>
-    safeFetch<T>(endpoint, { method: 'GET', headers }),
-
-  post: <T = any>(endpoint: string, body?: any, headers?: Record<string, string>) =>
-    safeFetch<T>(endpoint, {
-      method: 'POST',
-      body: body !== undefined ? (typeof body === 'string' ? body : JSON.stringify(body)) : undefined,
-      headers
-    }),
-
-  put: <T = any>(endpoint: string, body?: any, headers?: Record<string, string>) =>
-    safeFetch<T>(endpoint, {
-      method: 'PUT',
-      body: body !== undefined ? (typeof body === 'string' ? body : JSON.stringify(body)) : undefined,
-      headers
-    }),
-
-  patch: <T = any>(endpoint: string, body?: any, headers?: Record<string, string>) =>
-    safeFetch<T>(endpoint, {
-      method: 'PATCH',
-      body: body !== undefined ? (typeof body === 'string' ? body : JSON.stringify(body)) : undefined,
-      headers
-    }),
-
-  delete: <T = any>(endpoint: string, headers?: Record<string, string>) =>
-    safeFetch<T>(endpoint, { method: 'DELETE', headers })
+  get: safeGet,
+  post: safePost,
+  put: safePut,
+  patch: safePatch,
+  delete: safeDelete
 };

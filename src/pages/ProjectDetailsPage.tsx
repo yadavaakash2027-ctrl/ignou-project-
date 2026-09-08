@@ -190,23 +190,33 @@ export const ProjectDetailsPage: React.FC<ProjectDetailsPageProps> = ({ topicId,
             <div className="text-2xl font-black text-slate-900 dark:text-white">₹1,499 <span className="text-xs text-slate-400 font-normal">incl. all taxes</span></div>
           </div>
 
-          {isAvail ? (
+          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
             <button
-              onClick={() => onNavigate('checkout', { topicId: topic.id, courseCode: topic.courseCode, program: topic.program })}
-              className="w-full sm:w-auto px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-md transition flex items-center justify-center gap-2"
+              onClick={() => onNavigate('synopsis-generator', { topicId: topic.id, courseCode: topic.courseCode, program: topic.program, title: topic.title })}
+              className="w-full sm:w-auto px-5 py-3.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 rounded-xl font-bold text-xs shadow-xs transition flex items-center justify-center gap-2 cursor-pointer"
             >
-              <Sparkles className="w-4 h-4 text-amber-300" />
-              <span>Reserve & Start Instant Generation</span>
-              <ArrowRight className="w-4 h-4" />
+              <FileCheck className="w-4 h-4 text-blue-500" />
+              <span>Generate Synopsis (Proposal)</span>
             </button>
-          ) : (
-            <button
-              disabled
-              className="w-full sm:w-auto px-8 py-3.5 bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 rounded-xl font-bold text-sm cursor-not-allowed"
-            >
-              Topic Already Allocated
-            </button>
-          )}
+
+            {isAvail ? (
+              <button
+                onClick={() => onNavigate('checkout', { topicId: topic.id, courseCode: topic.courseCode, program: topic.program })}
+                className="w-full sm:w-auto px-6 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4 text-amber-300" />
+                <span>Reserve Full Project</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            ) : (
+              <button
+                disabled
+                className="w-full sm:w-auto px-6 py-3.5 bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 rounded-xl font-bold text-sm cursor-not-allowed"
+              >
+                Topic Already Allocated
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

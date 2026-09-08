@@ -89,14 +89,14 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onNavigate }) =>
 
         {/* Login Card */}
         <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 shadow-xl shadow-slate-200/50 dark:shadow-none space-y-6">
-          {/* Security Notice / Demo Helper */}
+          {/* Security Notice */}
           <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs space-y-1">
             <div className="flex items-center gap-1.5 font-bold text-slate-700 dark:text-slate-200">
               <KeyRound className="w-3.5 h-3.5 text-red-500" />
               <span>Administrative Authentication</span>
             </div>
             <p className="text-slate-500 dark:text-slate-400 text-[11px] leading-relaxed">
-              Credentials are authenticated exclusively on the backend server. Demo setup: User ID <code className="px-1 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-red-600 dark:text-red-400 font-mono font-bold">admin</code>.
+              Protected by IGNOU Secure Gateway & Session Access Control. Access strictly restricted to verified administrative credentials.
             </p>
           </div>
 
@@ -110,13 +110,13 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onNavigate }) =>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
-                Admin User ID
+                Admin Email / User ID
               </label>
               <div className="relative">
                 <input
                   id="admin-userid-input"
                   type="text"
-                  placeholder="e.g. admin or admin@ignouprojecthub.in"
+                  placeholder="Enter registered admin email or user ID"
                   value={userId}
                   onChange={(e) => setUserId(e.target.value)}
                   autoComplete="username"

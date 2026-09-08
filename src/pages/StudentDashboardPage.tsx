@@ -17,19 +17,35 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { ProjectRecord, GenerationJob } from '../types';
 import { GenerationProgressModal } from '../components/GenerationProgressModal';
-import { safeFetch, buildApiUrl } from '../lib/api';
+import { StudentAuthDownloadModal } from '../components/StudentAuthDownloadModal';
+import { safeFetch } from '../lib/api';
+import { downloadProjectFile } from '../lib/downloadService';
 
 interface StudentDashboardProps {
   onNavigate: (page: string, params?: Record<string, any>) => void;
 }
 
 export const StudentDashboardPage: React.FC<StudentDashboardProps> = ({ onNavigate }) => {
-  const { user, getAuthHeaders } = useAuth();
+  const { user } = useAuth();
   const [projects, setProjects] = useState<ProjectRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeModalProjectId, setActiveModalProjectId] = useState<string | null>(null);
   const [allocating, setAllocating] = useState(false);
   const [allocationMsg, setAllocationMsg] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [authDownloadModal, setAuthDownloadModal] = useState<{
+    open: boolean;
+    projectId: string;
+    courseCode: string;
+    topicTitle: string;
+    fileType: 'pdf' | 'docx';
+  }>({
+    open: false,
+    projectId: '',
+    courseCode: '',
+    topicTitle: '',
+    fileType: 'pdf'
+  });
 
   useEffect(() => {
     fetchProjects();
@@ -50,7 +66,10 @@ export const StudentDashboardPage: React.FC<StudentDashboardProps> = ({ onNaviga
   };
 
   const handleQuickAllocate = async () => {
-    if (!user) return;
+    if (!user) {
+      onNavigate('login');
+      return;
+    }
     setAllocating(true);
     setAllocationMsg(null);
 
@@ -79,26 +98,35 @@ export const StudentDashboardPage: React.FC<StudentDashboardProps> = ({ onNaviga
     }
   };
 
-  const handleDownload = (projectId: string, type: 'pdf' | 'docx', courseCode: string) => {
-    const url = buildApiUrl(`/projects/${projectId}/download/${type}`);
-    fetch(url, { headers: getAuthHeaders() })
-      .then((res) => {
-        if (!res.ok) throw new Error('Download failed');
-        return res.blob();
-      })
-      .then((blob) => {
-        const blobUrl = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = `IGNOU_${courseCode}_${user?.enrollmentNumber || 'Draft'}.${type}`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(blobUrl);
-      })
-      .catch((err) => {
-        alert(err.message || 'Download error');
+  const executeDownload = async (projectId: string, type: 'pdf' | 'docx', courseCode: string, topicTitle?: string) => {
+    setDownloadingId(`${projectId}_${type}`);
+    try {
+      await downloadProjectFile({
+        projectId,
+        fileType: type,
+        courseCode,
+        topicTitle,
+        enrollmentNumber: user?.enrollmentNumber
       });
+    } catch (err: any) {
+      alert(err.message || 'Failed to download project file.');
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  const handleDownload = (projectId: string, type: 'pdf' | 'docx', courseCode: string, topicTitle?: string) => {
+    if (!user) {
+      setAuthDownloadModal({
+        open: true,
+        projectId,
+        courseCode,
+        topicTitle: topicTitle || 'IGNOU Dissertation',
+        fileType: type
+      });
+      return;
+    }
+    executeDownload(projectId, type, courseCode, topicTitle);
   };
 
   return (
@@ -289,6 +317,23 @@ export const StudentDashboardPage: React.FC<StudentDashboardProps> = ({ onNaviga
           projectId={activeModalProjectId}
           onClose={() => setActiveModalProjectId(null)}
           onRefreshProject={fetchProjects}
+        />
+      )}
+
+      {/* Student Auth Download Modal */}
+      {authDownloadModal.open && (
+        <StudentAuthDownloadModal
+          isOpen={authDownloadModal.open}
+          onClose={() => setAuthDownloadModal(prev => ({ ...prev, open: false }))}
+          projectId={authDownloadModal.projectId}
+          courseCode={authDownloadModal.courseCode}
+          topicTitle={authDownloadModal.topicTitle}
+          fileType={authDownloadModal.fileType}
+          onSuccess={() => {
+            const { projectId, fileType, courseCode, topicTitle } = authDownloadModal;
+            setAuthDownloadModal(prev => ({ ...prev, open: false }));
+            executeDownload(projectId, fileType, courseCode, topicTitle);
+          }}
         />
       )}
     </div>

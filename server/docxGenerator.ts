@@ -37,66 +37,281 @@ export class DocxGenerator {
 
     const docChildren: any[] = [];
 
-    // Title Section
+    const getSchoolName = (prog?: string): string => {
+      const p = (prog || '').toUpperCase();
+      if (p.includes('BCA') || p.includes('MCA') || p.includes('PGDCA') || p.includes('CIT') || p.includes('COMPUTER') || p.includes('CS') || p.includes('IT')) {
+        return 'Computer and Information Sciences (SOCIS)';
+      }
+      if (p.includes('MBA') || p.includes('B.COM') || p.includes('M.COM') || p.includes('MANAGEMENT') || p.includes('BBA')) {
+        return 'Management Studies (SOMS)';
+      }
+      if (p.includes('BED') || p.includes('MED') || p.includes('MAEDU') || p.includes('EDUCATION')) {
+        return 'Education (SOE)';
+      }
+      if (p.includes('MAPC') || p.includes('BAPCH') || p.includes('PSYCHOLOGY') || p.includes('MSW') || p.includes('BSW') || p.includes('ECONOMICS') || p.includes('POLITICAL') || p.includes('HISTORY') || p.includes('SOCIOLOGY')) {
+        return 'Social Sciences (SOSS)';
+      }
+      if (p.includes('TOURISM') || p.includes('BTS') || p.includes('MTM')) {
+        return 'Tourism and Hospitality Service Sector (SOTHSM)';
+      }
+      if (p.includes('HEALTH') || p.includes('NURSING') || p.includes('DNA')) {
+        return 'Health Sciences (SOHS)';
+      }
+      if (p.includes('SCIENCE') || p.includes('BSC') || p.includes('MSC')) {
+        return 'Pure and Applied Sciences (SOS)';
+      }
+      return 'Computer and Information Sciences (SOCIS)';
+    };
+
+    const hasValidStudentName = context.studentName && context.studentName.trim() !== '' && context.studentName !== 'IGNOU Student' && context.studentName !== 'undefined' && context.studentName !== 'null';
+    const studentNameVal = hasValidStudentName ? context.studentName.trim() : '___________________________';
+
+    const hasValidEnrollment = context.enrollmentNumber && context.enrollmentNumber.trim() !== '' && context.enrollmentNumber !== 'IGNOU-2025-XXXX' && context.enrollmentNumber !== 'undefined' && context.enrollmentNumber !== 'null';
+    const enrollmentVal = hasValidEnrollment ? context.enrollmentNumber.trim() : '__________________';
+
+    const progVal = context.program && context.program !== 'undefined' && context.program !== 'null' ? context.program : '_________________________';
+    const rcVal = context.regionalCenter || 'RC Delhi-II (07)';
+    const scVal = context.studyCenter || 'SC-0713';
+    const schoolName = getSchoolName(context.program);
+    const cleanTitle = (context.topicTitle || 'Project Title').trim().replace(/^"+|"+$/g, '');
+
+    // Title Section (PAGE 1)
     docChildren.push(
       new Paragraph({
-        text: 'INDIRA GANDHI NATIONAL OPEN UNIVERSITY',
-        heading: HeadingLevel.TITLE,
+        children: [
+          new TextRun({
+            text: 'INDIRA GANDHI NATIONAL OPEN UNIVERSITY',
+            bold: true,
+            size: 32, // 16pt
+            font: 'Times New Roman',
+            color: '000000'
+          })
+        ],
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 200, after: 60 }
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: `School of ${schoolName}`,
+            size: 21, // 10.5pt
+            font: 'Times New Roman',
+            color: '000000'
+          })
+        ],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 40 }
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: 'Maidan Garhi, New Delhi – 110068',
+            size: 19, // 9.5pt
+            font: 'Times New Roman',
+            color: '334155'
+          })
+        ],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 200 }
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: 'A DISSERTATION / PROJECT REPORT SUBMITTED IN PARTIAL FULFILLMENT OF\nTHE REQUIREMENTS FOR THE AWARD OF THE DEGREE OF',
+            bold: true,
+            size: 21, // 10.5pt
+            font: 'Times New Roman',
+            color: '000000'
+          })
+        ],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 200 }
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: (context.program || 'BACHELOR OF COMPUTER APPLICATIONS (BCA)').toUpperCase(),
+            bold: true,
+            size: 32, // 16pt
+            font: 'Times New Roman',
+            color: '000000'
+          })
+        ],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 60 }
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: `COURSE CODE: ${(context.courseCode || 'BCSP-064').toUpperCase()}`,
+            bold: true,
+            size: 23, // 11.5pt
+            font: 'Times New Roman',
+            color: '000000'
+          })
+        ],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 220 }
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: 'ON THE TOPIC:',
+            italics: true,
+            size: 21, // 10.5pt
+            font: 'Times New Roman',
+            color: '000000'
+          })
+        ],
         alignment: AlignmentType.CENTER,
         spacing: { after: 120 }
       }),
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: `School of Management Studies / Computer & Social Sciences`,
-            italics: true
+      new Table({
+        rows: [
+          new TableRow({
+            children: [
+              new TableCell({
+                children: [
+                  new Paragraph({
+                    children: [
+                      new TextRun({
+                        text: `"${cleanTitle}"`,
+                        bold: true,
+                        size: 25, // 12.5pt
+                        font: 'Times New Roman',
+                        color: '000000'
+                      })
+                    ],
+                    alignment: AlignmentType.CENTER,
+                    spacing: { before: 140, after: 140 }
+                  })
+                ],
+                width: { size: 100, type: WidthType.PERCENTAGE },
+                borders: {
+                  top: { style: BorderStyle.SINGLE, size: 8, color: '475569' },
+                  bottom: { style: BorderStyle.SINGLE, size: 8, color: '475569' },
+                  left: { style: BorderStyle.SINGLE, size: 8, color: '475569' },
+                  right: { style: BorderStyle.SINGLE, size: 8, color: '475569' }
+                }
+              })
+            ]
           })
         ],
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 300 }
+        width: { size: 92, type: WidthType.PERCENTAGE },
+        alignment: AlignmentType.CENTER
       }),
       new Paragraph({
-        children: [
-          new TextRun({
-            text: `A DISSERTATION / MAJOR PROJECT SUBMITTED IN PARTIAL FULFILLMENT OF THE REQUIREMENTS FOR ${context.program} (${context.courseCode})`,
-            bold: true
-          })
-        ],
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 400 }
+        text: '',
+        spacing: { after: 260 }
       }),
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: `TOPIC: "${context.topicTitle}"`,
-            bold: true,
-            size: 28,
-            color: '1E3A8A'
+      new Table({
+        rows: [
+          new TableRow({
+            children: [
+              new TableCell({
+                children: [
+                  new Paragraph({
+                    children: [
+                      new TextRun({ text: 'SUBMITTED BY:', bold: true, size: 21, font: 'Times New Roman', color: '000000' })
+                    ],
+                    spacing: { after: 100 }
+                  }),
+                  new Paragraph({
+                    children: [
+                      new TextRun({ text: 'Name: ', bold: true, size: 19, font: 'Times New Roman', color: '000000' }),
+                      new TextRun({ text: studentNameVal, size: 19, font: 'Times New Roman', color: '1E293B' })
+                    ],
+                    spacing: { after: 60 }
+                  }),
+                  new Paragraph({
+                    children: [
+                      new TextRun({ text: 'Enrollment No.: ', bold: true, size: 19, font: 'Times New Roman', color: '000000' }),
+                      new TextRun({ text: enrollmentVal, size: 19, font: 'Times New Roman', color: '1E293B' })
+                    ],
+                    spacing: { after: 60 }
+                  }),
+                  new Paragraph({
+                    children: [
+                      new TextRun({ text: 'Program: ', bold: true, size: 19, font: 'Times New Roman', color: '000000' }),
+                      new TextRun({ text: progVal, size: 19, font: 'Times New Roman', color: '1E293B' })
+                    ],
+                    spacing: { after: 60 }
+                  }),
+                  new Paragraph({
+                    children: [
+                      new TextRun({ text: 'Regional Centre: ', bold: true, size: 19, font: 'Times New Roman', color: '000000' }),
+                      new TextRun({ text: rcVal, size: 19, font: 'Times New Roman', color: '1E293B' })
+                    ],
+                    spacing: { after: 60 }
+                  }),
+                  new Paragraph({
+                    children: [
+                      new TextRun({ text: 'Study Centre Code: ', bold: true, size: 19, font: 'Times New Roman', color: '000000' }),
+                      new TextRun({ text: scVal, size: 19, font: 'Times New Roman', color: '1E293B' })
+                    ],
+                    spacing: { after: 60 }
+                  })
+                ],
+                width: { size: 50, type: WidthType.PERCENTAGE },
+                borders: {
+                  top: { style: BorderStyle.NONE },
+                  bottom: { style: BorderStyle.NONE },
+                  left: { style: BorderStyle.NONE },
+                  right: { style: BorderStyle.NONE }
+                }
+              }),
+              new TableCell({
+                children: [
+                  new Paragraph({
+                    children: [
+                      new TextRun({ text: 'UNDER THE SUPERVISION OF:', bold: true, size: 21, font: 'Times New Roman', color: '000000' })
+                    ],
+                    spacing: { after: 100 }
+                  }),
+                  new Paragraph({
+                    children: [
+                      new TextRun({ text: 'Dr. S. K. Verma', bold: true, size: 19, font: 'Times New Roman', color: '000000' })
+                    ],
+                    spacing: { after: 40 }
+                  }),
+                  new Paragraph({
+                    children: [
+                      new TextRun({ text: 'Ph.D., Associate Professor', size: 18, font: 'Times New Roman', color: '334155' })
+                    ],
+                    spacing: { after: 40 }
+                  }),
+                  new Paragraph({
+                    children: [
+                      new TextRun({ text: `School of ${schoolName}`, size: 18, font: 'Times New Roman', color: '334155' })
+                    ],
+                    spacing: { after: 40 }
+                  }),
+                  new Paragraph({
+                    children: [
+                      new TextRun({ text: 'Approved IGNOU Project Guide', size: 18, font: 'Times New Roman', color: '334155' })
+                    ],
+                    spacing: { after: 40 }
+                  }),
+                  new Paragraph({
+                    children: [
+                      new TextRun({ text: `Academic Session: ${context.academicSession || '2025–2026'}`, size: 18, font: 'Times New Roman', color: '334155' })
+                    ],
+                    spacing: { after: 40 }
+                  })
+                ],
+                width: { size: 50, type: WidthType.PERCENTAGE },
+                borders: {
+                  top: { style: BorderStyle.NONE },
+                  bottom: { style: BorderStyle.NONE },
+                  left: { style: BorderStyle.NONE },
+                  right: { style: BorderStyle.NONE }
+                }
+              })
+            ]
           })
         ],
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 600 }
-      }),
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: `Submitted by: ${context.studentName} | Enrollment No: ${context.enrollmentNumber}\nProgram: ${context.program} | Course Code: ${context.courseCode}\nApproved Project Guide: Dr. S. K. Verma, Ph.D.`,
-            bold: true
-          })
-        ],
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 800 }
-      }),
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: 'ACADEMIC INTEGRITY NOTICE:\nAll generated projects and synopses are provided as personalized academic project drafts and reference research material to assist students in understanding methodology and structuring. Students should review, verify, understand, edit and personalize the material before official university evaluation.\nIGNOU Project Hub is an independent platform and is not affiliated with IGNOU.',
-            italics: true,
-            color: 'DC2626'
-          })
-        ],
-        alignment: AlignmentType.JUSTIFIED,
-        spacing: { after: 800 }
+        width: { size: 92, type: WidthType.PERCENTAGE },
+        alignment: AlignmentType.CENTER
       })
     );
 

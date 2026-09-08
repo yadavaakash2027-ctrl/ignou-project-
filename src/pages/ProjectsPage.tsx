@@ -329,22 +329,32 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ initialProgram, onNa
                     </span>
                   </div>
 
-                  {isAvail ? (
+                  <div className="grid grid-cols-2 gap-2">
                     <button
-                      onClick={() => handleSelectTopic(topic)}
-                      className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs flex items-center justify-center gap-1.5 transition"
+                      onClick={() => onNavigate('synopsis-generator', { topicId: topic.id, courseCode: topic.courseCode, program: topic.program, title: topic.title })}
+                      className="py-2.5 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-xs font-bold hover:bg-blue-100 transition flex items-center justify-center gap-1 cursor-pointer"
                     >
-                      <span>Reserve Topic & Generate</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Synopsis</span>
                     </button>
-                  ) : (
-                    <button
-                      onClick={() => onNavigate('project-details', { topicId: topic.id })}
-                      className="w-full py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-750 transition"
-                    >
-                      View Syllabus & Outline
-                    </button>
-                  )}
+
+                    {isAvail ? (
+                      <button
+                        onClick={() => handleSelectTopic(topic)}
+                        className="py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs flex items-center justify-center gap-1 transition cursor-pointer"
+                      >
+                        <span>Reserve</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => onNavigate('project-details', { topicId: topic.id })}
+                        className="py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-750 transition cursor-pointer"
+                      >
+                        Outline
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             );

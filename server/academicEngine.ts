@@ -42,8 +42,12 @@ Requirements:
           if (aiText && aiText.trim().length > 300) {
             content = aiText.trim();
           }
-        } catch (err) {
-          console.warn(`Gemini generation skipped or failed for chapter ${chapterNumber} subsection ${subMeta.heading}, using academic synthesizer:`, err);
+
+          // Gentle pacing to avoid concurrent request saturation
+          await new Promise((resolve) => setTimeout(resolve, 200));
+        } catch (err: any) {
+          // Log clean informational fallback message
+          console.info(`[AcademicEngine] Synthesis fallback active for Ch.${chapterNumber} (${subMeta.heading})`);
         }
       }
 

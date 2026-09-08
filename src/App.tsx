@@ -20,6 +20,7 @@ import { CheckoutPage } from './pages/CheckoutPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { StudentProfilePage } from './pages/admin/StudentProfilePage';
 import { AcademicIntegrityPage } from './pages/AcademicIntegrityPage';
+import { SynopsisGeneratorPage } from './pages/SynopsisGeneratorPage';
 import { AboutPage, ContactPage, FAQPage, PrivacyPolicyPage, TermsPage } from './pages/InfoPages';
 
 function AppContent() {
@@ -51,12 +52,35 @@ function AppContent() {
         return <SubjectsPage onNavigate={handleNavigate} />;
       case 'project-details':
         return <ProjectDetailsPage topicId={navParams.topicId} onNavigate={handleNavigate} />;
+      case 'synopsis-generator':
+      case 'synopsis':
+        return (
+          <SynopsisGeneratorPage
+            onNavigate={handleNavigate}
+            currentUser={user}
+            initialTopicId={navParams.topicId}
+            initialProgram={navParams.program}
+            initialCourseCode={navParams.courseCode}
+            initialTitle={navParams.title}
+          />
+        );
       case 'search':
         return <SearchPage initialQuery={navParams.query} onNavigate={handleNavigate} />;
       case 'login':
-        return <LoginPage onNavigate={handleNavigate} />;
+        return (
+          <LoginPage
+            initialIdentifier={navParams.identifier}
+            navParams={navParams}
+            onNavigate={handleNavigate}
+          />
+        );
       case 'register':
-        return <RegisterPage onNavigate={handleNavigate} />;
+        return (
+          <RegisterPage
+            navParams={navParams}
+            onNavigate={handleNavigate}
+          />
+        );
       case 'admin-login':
         return <AdminLoginPage onNavigate={handleNavigate} />;
       case 'student-dashboard':

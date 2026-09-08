@@ -143,97 +143,155 @@ export class PDFGenerator {
   }
 
   private static renderCoverPage(doc: PDFKit.PDFDocument, context: ProjectContext) {
-    // Decorative border
-    doc.rect(40, 40, 515, 762).lineWidth(1.5).strokeColor('#1E3A8A').stroke();
-    doc.rect(44, 44, 507, 754).lineWidth(0.5).strokeColor('#93C5FD').stroke();
+    const pageWidth = 595.28;
+    const pageHeight = 841.89;
 
-    doc.y = 80;
-    doc.fontSize(16).font('Helvetica-Bold').fillColor('#1E3A8A').text('INDIRA GANDHI NATIONAL OPEN UNIVERSITY', {
+    // --- 1. DOUBLE-LINE SUBTLE RECTANGULAR BORDER ---
+    doc.rect(36, 36, pageWidth - 72, pageHeight - 72).lineWidth(1.5).strokeColor('#000000').stroke();
+    doc.rect(40, 40, pageWidth - 80, pageHeight - 80).lineWidth(0.5).strokeColor('#334155').stroke();
+
+    const contentWidth = pageWidth - 100;
+    const centerX = 50;
+
+    // --- 2. TOP UNIVERSITY HEADER ---
+    doc.y = 56;
+    doc.font('Times-Bold').fontSize(16).fillColor('#000000').text('INDIRA GANDHI NATIONAL OPEN UNIVERSITY', centerX, doc.y, {
       align: 'center',
-      width: 487
+      width: contentWidth
     });
 
-    doc.moveDown(0.4);
-    doc.fontSize(12).font('Helvetica').fillColor('#475569').text(`School of ${this.getSchoolName(context.program)}`, {
+    doc.moveDown(0.35);
+    const schoolName = this.getSchoolName(context.program);
+    doc.font('Times-Roman').fontSize(10.5).fillColor('#000000').text(`School of ${schoolName}`, centerX, doc.y, {
       align: 'center',
-      width: 487
+      width: contentWidth
     });
 
-    doc.moveDown(0.3);
-    doc.fontSize(10.5).font('Helvetica-Bold').fillColor('#2563EB').text(`Maidan Garhi, New Delhi – 110068`, {
+    doc.moveDown(0.25);
+    doc.font('Times-Roman').fontSize(9.5).fillColor('#334155').text('Maidan Garhi, New Delhi – 110068', centerX, doc.y, {
       align: 'center',
-      width: 487
+      width: contentWidth
     });
 
-    doc.moveDown(2);
-    doc.strokeColor('#CBD5E1').lineWidth(1).moveTo(80, doc.y).lineTo(515, doc.y).stroke();
-    doc.moveDown(1.5);
-
-    doc.fontSize(11).font('Helvetica-Bold').fillColor('#0F172A').text('A DISSERTATION / PROJECT REPORT SUBMITTED IN PARTIAL FULFILLMENT OF THE REQUIREMENTS FOR THE AWARD OF THE DEGREE OF', {
-      align: 'center',
-      width: 450
-    });
-
+    // --- 3. SEPARATOR LINE ---
     doc.moveDown(0.8);
-    doc.fontSize(15).font('Helvetica-Bold').fillColor('#1E3A8A').text(`${context.program.toUpperCase()}`, {
+    const sepY = doc.y;
+    doc.moveTo(100, sepY).lineTo(pageWidth - 100, sepY).lineWidth(0.75).strokeColor('#64748B').stroke();
+    doc.y = sepY + 12;
+
+    // --- 4. SUBMISSION STATEMENT ---
+    doc.font('Times-Bold').fontSize(10.5).fillColor('#000000').text(
+      'A DISSERTATION / PROJECT REPORT SUBMITTED IN PARTIAL FULFILLMENT OF\nTHE REQUIREMENTS FOR THE AWARD OF THE DEGREE OF',
+      60,
+      doc.y,
+      {
+        align: 'center',
+        width: pageWidth - 120,
+        lineGap: 3.5
+      }
+    );
+
+    // --- 5. PROGRAM ---
+    doc.moveDown(0.8);
+    const programDisplay = context.program && context.program !== 'undefined' && context.program !== 'null' ? context.program.toUpperCase() : 'BACHELOR OF COMPUTER APPLICATIONS (BCA)';
+    doc.font('Times-Bold').fontSize(16).fillColor('#000000').text(programDisplay, centerX, doc.y, {
       align: 'center',
-      width: 487
+      width: contentWidth
     });
 
-    doc.moveDown(0.3);
-    doc.fontSize(12).font('Helvetica-Bold').fillColor('#334155').text(`COURSE CODE: ${context.courseCode}`, {
+    // --- 6. COURSE CODE ---
+    doc.moveDown(0.35);
+    const courseCodeDisplay = context.courseCode && context.courseCode !== 'undefined' && context.courseCode !== 'null' ? context.courseCode.toUpperCase() : 'BCSP-064';
+    doc.font('Times-Bold').fontSize(11.5).fillColor('#000000').text(`COURSE CODE: ${courseCodeDisplay}`, centerX, doc.y, {
       align: 'center',
-      width: 487
+      width: contentWidth
     });
 
-    doc.moveDown(1.8);
-    doc.fontSize(11).font('Helvetica-Oblique').fillColor('#64748B').text('ON THE TOPIC:', {
+    // --- 7. TOPIC LABEL ---
+    doc.moveDown(1.1);
+    doc.font('Times-Italic').fontSize(10.5).fillColor('#000000').text('ON THE TOPIC:', centerX, doc.y, {
       align: 'center',
-      width: 487
+      width: contentWidth
     });
 
-    doc.moveDown(0.5);
-    // Topic Title Box
-    const topicBoxY = doc.y;
-    doc.rect(60, topicBoxY, 475, 75).fillAndStroke('#F0F9FF', '#BAE6FD');
-    doc.y = topicBoxY + 12;
-    doc.fontSize(13).font('Helvetica-Bold').fillColor('#0C4A6E').text(`"${context.topicTitle}"`, 70, doc.y, {
+    // --- 8. PROJECT TITLE BOX ---
+    doc.moveDown(0.4);
+    const rawTitle = (context.topicTitle || 'Project Title').trim();
+    const cleanTitle = rawTitle.replace(/^"+|"+$/g, '');
+
+    const boxWidth = 475;
+    const boxX = 60;
+    const boxY = doc.y;
+
+    doc.font('Times-Bold').fontSize(12.5);
+    const titleTextHeight = doc.heightOfString(`"${cleanTitle}"`, {
+      width: boxWidth - 28,
+      lineGap: 3.5
+    });
+    const boxHeight = Math.max(55, Math.min(85, titleTextHeight + 22));
+
+    doc.rect(boxX, boxY, boxWidth, boxHeight).lineWidth(0.75).strokeColor('#475569').fillAndStroke('#FAFAFA', '#475569');
+
+    const textOffsetY = Math.max(8, (boxHeight - titleTextHeight) / 2);
+    doc.font('Times-Bold').fontSize(12.5).fillColor('#000000').text(`"${cleanTitle}"`, boxX + 14, boxY + textOffsetY, {
       align: 'center',
-      width: 455
+      width: boxWidth - 28,
+      lineGap: 3.5
     });
 
-    doc.y = topicBoxY + 95;
-    doc.moveDown(1);
+    doc.y = boxY + boxHeight + 22;
 
-    // Student and Guide Grid
-    const infoY = doc.y;
-    // Left Box: Submitted by
-    doc.fontSize(10.5).font('Helvetica-Bold').fillColor('#1E3A8A').text('SUBMITTED BY:', 70, infoY);
-    doc.fontSize(10).font('Helvetica-Bold').fillColor('#0F172A').text(`Name: ${context.studentName}`, 70, infoY + 18);
-    doc.fontSize(9.5).font('Helvetica').fillColor('#334155').text(`Enrollment No: ${context.enrollmentNumber}`, 70, infoY + 34);
-    doc.fontSize(9.5).font('Helvetica').fillColor('#334155').text(`Program: ${context.program}`, 70, infoY + 48);
-    doc.fontSize(9.5).font('Helvetica').fillColor('#334155').text(`Regional Center: RC Delhi-II (07)`, 70, infoY + 62);
-    doc.fontSize(9.5).font('Helvetica').fillColor('#334155').text(`Study Center Code: SC-0713`, 70, infoY + 76);
+    // --- 9. TWO-COLUMN: SUBMITTED BY & UNDER THE SUPERVISION OF ---
+    const colY = doc.y;
+    const colWidth = 225;
+    const leftColX = 60;
+    const rightColX = 310;
 
-    // Right Box: Under the Guidance of
-    doc.fontSize(10.5).font('Helvetica-Bold').fillColor('#1E3A8A').text('UNDER THE SUPERVISION OF:', 320, infoY);
-    doc.fontSize(10).font('Helvetica-Bold').fillColor('#0F172A').text('Dr. S. K. Verma, Ph.D.', 320, infoY + 18);
-    doc.fontSize(9.5).font('Helvetica').fillColor('#334155').text('Professor & Academic Counsellor', 320, infoY + 34);
-    doc.fontSize(9.5).font('Helvetica').fillColor('#334155').text(`School of ${this.getSchoolName(context.program)}`, 320, infoY + 48);
-    doc.fontSize(9.5).font('Helvetica').fillColor('#334155').text('Approved IGNOU Project Guide', 320, infoY + 62);
-    doc.fontSize(9.5).font('Helvetica').fillColor('#334155').text('Evaluation Session: 2025-2026', 320, infoY + 76);
+    // Student fields
+    const hasValidStudentName = context.studentName && context.studentName.trim() !== '' && context.studentName !== 'IGNOU Student' && context.studentName !== 'undefined' && context.studentName !== 'null';
+    const studentNameVal = hasValidStudentName ? context.studentName.trim() : '___________________________';
 
-    doc.y = infoY + 115;
-    doc.moveDown(1.5);
-    doc.fontSize(9.5).font('Helvetica-Bold').fillColor('#1E3A8A').text('INDIRA GANDHI NATIONAL OPEN UNIVERSITY, NEW DELHI', {
-      align: 'center',
-      width: 487
-    });
-    doc.moveDown(0.2);
-    doc.fontSize(8.5).font('Helvetica').fillColor('#64748B').text('Academic Session: 2025–2026', {
-      align: 'center',
-      width: 487
-    });
+    const hasValidEnrollment = context.enrollmentNumber && context.enrollmentNumber.trim() !== '' && context.enrollmentNumber !== 'IGNOU-2025-XXXX' && context.enrollmentNumber !== 'undefined' && context.enrollmentNumber !== 'null';
+    const enrollmentVal = hasValidEnrollment ? context.enrollmentNumber.trim() : '__________________';
+
+    const progVal = context.program && context.program !== 'undefined' && context.program !== 'null' ? context.program : '_________________________';
+    const rcVal = context.regionalCenter || 'RC Delhi-II (07)';
+    const scVal = context.studyCenter || 'SC-0713';
+
+    // LEFT COLUMN: SUBMITTED BY
+    doc.font('Times-Bold').fontSize(10.5).fillColor('#000000').text('SUBMITTED BY:', leftColX, colY);
+
+    let curLeftY = colY + 16;
+    const renderStudentField = (label: string, value: string) => {
+      doc.font('Times-Bold').fontSize(9.5).fillColor('#000000').text(label, leftColX, curLeftY, { continued: true, width: colWidth });
+      doc.font('Times-Roman').fillColor('#1E293B').text(value);
+      curLeftY += 15;
+    };
+
+    renderStudentField('Name: ', studentNameVal);
+    renderStudentField('Enrollment No.: ', enrollmentVal);
+    renderStudentField('Program: ', progVal);
+    if (rcVal && rcVal !== 'undefined') {
+      renderStudentField('Regional Centre: ', rcVal);
+    }
+    if (scVal && scVal !== 'undefined') {
+      renderStudentField('Study Centre Code: ', scVal);
+    }
+
+    // RIGHT COLUMN: UNDER THE SUPERVISION OF
+    doc.font('Times-Bold').fontSize(10.5).fillColor('#000000').text('UNDER THE SUPERVISION OF:', rightColX, colY);
+
+    let curRightY = colY + 16;
+    doc.font('Times-Bold').fontSize(9.5).fillColor('#000000').text('Dr. S. K. Verma', rightColX, curRightY, { width: colWidth });
+    curRightY += 14;
+    doc.font('Times-Roman').fontSize(9).fillColor('#334155').text('Ph.D., Associate Professor', rightColX, curRightY, { width: colWidth });
+    curRightY += 13;
+    doc.font('Times-Roman').fontSize(9).fillColor('#334155').text(`School of ${schoolName}`, rightColX, curRightY, { width: colWidth });
+    curRightY += 13;
+    doc.font('Times-Roman').fontSize(9).fillColor('#334155').text('Approved IGNOU Project Guide', rightColX, curRightY, { width: colWidth });
+    curRightY += 13;
+    const session = context.academicSession || '2025–2026';
+    doc.font('Times-Roman').fontSize(9).fillColor('#334155').text(`Academic Session: ${session}`, rightColX, curRightY, { width: colWidth });
   }
 
   private static renderCertificatePage(doc: PDFKit.PDFDocument, context: ProjectContext) {
