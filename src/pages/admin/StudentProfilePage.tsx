@@ -41,6 +41,19 @@ interface StudentProfilePageProps {
   onNavigate: (page: string, params?: Record<string, any>) => void;
 }
 
+async function safeJson<T = any>(res: Response | null | undefined): Promise<T | null> {
+  if (!res) return null;
+  try {
+    const text = await res.text();
+    if (!text || text.trim().startsWith('<')) {
+      return null;
+    }
+    return JSON.parse(text) as T;
+  } catch {
+    return null;
+  }
+}
+
 export const StudentProfilePage: React.FC<StudentProfilePageProps> = ({ studentId, onNavigate }) => {
   const { getAuthHeaders, user: currentUser } = useAuth();
   
@@ -83,8 +96,8 @@ export const StudentProfilePage: React.FC<StudentProfilePageProps> = ({ studentI
       const res = await fetch(`/api/admin/students/${studentId}`, {
         headers: getAuthHeaders()
       });
-      if (res.ok) {
-        const data = await res.json();
+      const data = await safeJson(res);
+      if (res && res.ok && data) {
         if (data.student) {
           setStudent(data.student);
           setEditForm({
@@ -101,8 +114,7 @@ export const StudentProfilePage: React.FC<StudentProfilePageProps> = ({ studentI
           if (data.downloads) setDownloads(data.downloads);
         }
       } else {
-        const errData = await res.json().catch(() => ({}));
-        setError(errData.error || 'Failed to load student profile.');
+        setError(data?.error || 'Failed to load student profile.');
       }
     } catch (err: any) {
       setError(err.message || 'Network error while fetching student data.');
@@ -128,12 +140,12 @@ export const StudentProfilePage: React.FC<StudentProfilePageProps> = ({ studentI
         headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify({ status: targetStatus, reason: statusReason })
       });
-      const data = await res.json();
-      if (res.ok) {
+      const data = await safeJson(res);
+      if (res && res.ok) {
         showToast(`Account status updated to ${targetStatus}`);
         setStudent((prev: any) => (prev ? { ...prev, accountStatus: targetStatus } : prev));
       } else {
-        showToast(`Failed: ${data.error || 'Update failed'}`);
+        showToast(`Failed: ${data?.error || 'Update failed'}`);
       }
     } catch (err: any) {
       showToast(`Error: ${err.message}`);
@@ -153,13 +165,13 @@ export const StudentProfilePage: React.FC<StudentProfilePageProps> = ({ studentI
         headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify(editForm)
       });
-      const data = await res.json();
-      if (res.ok) {
-        if (data.student) setStudent(data.student);
+      const data = await safeJson(res);
+      if (res && res.ok) {
+        if (data?.student) setStudent(data.student);
         showToast('Student profile successfully updated');
         setShowEditModal(false);
       } else {
-        showToast(`Failed: ${data.error || 'Update failed'}`);
+        showToast(`Failed: ${data?.error || 'Update failed'}`);
       }
     } catch (err: any) {
       showToast(`Error: ${err.message}`);

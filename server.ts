@@ -16,16 +16,29 @@ async function startServer() {
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-  // API Routes mount FIRST (both with /api prefix and direct fallback)
+  // API Routes mount FIRST: both with /api prefix and at root /
   app.use('/api', apiRouter);
-  app.use('/auth', apiRouter);
-  app.use('/projects', apiRouter);
-  app.use('/topics', apiRouter);
-  app.use('/programs', apiRouter);
-  app.use('/subjects', apiRouter);
-  app.use('/payment', apiRouter);
-  app.use('/admin', apiRouter);
-  app.use('/jobs', apiRouter);
+  app.use(apiRouter);
+
+  // Catch unhandled API routes so they NEVER fall through to Vite / index.html
+  app.all(['/api', '/api/*', '/auth/*', '/admin/*', '/projects/*', '/topics/*', '/programs/*', '/subjects/*', '/payment/*', '/jobs/*', '/synopsis/*', '/insforge/*'], (req, res) => {
+    res.status(404).json({
+      error: `API route not found: ${req.method} ${req.originalUrl}`,
+      status: 404
+    });
+  });
+
+  // Global API error handler ensuring JSON responses rather than Express default HTML errors
+  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    console.error('[API Server Error]:', err);
+    if (res.headersSent) {
+      return next(err);
+    }
+    res.status(err.status || 500).json({
+      error: err.message || 'Internal Server Error',
+      status: err.status || 500
+    });
+  });
 
   // Vite middleware for development vs static for production
   if (process.env.NODE_ENV !== 'production') {

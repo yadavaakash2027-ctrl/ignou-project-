@@ -115,83 +115,13 @@ export async function safeFetch<T = any>(
       } catch {}
     }
 
+    // Safely retrieve the response body as text first to avoid stream-already-read errors
     const contentType = response.headers.get('content-type') || '';
-    
-    // If the response is JSON, parse and inspect it first
-    if (contentType.includes('application/json')) {
-      let parsedData: any;
-      try {
-        parsedData = await response.json();
-      } catch {
-        parsedData = null;
-      }
+    const rawText = await response.text();
+    const isHtmlResponse = rawText.trim().startsWith('<') || contentType.includes('text/html');
 
-      if (response.ok) {
-        return {
-          data: parsedData as T,
-          ok: true,
-          status: response.status
-        };
-      }
-
-      // If 401 unauthorized due to expired token and not already retrying, attempt transparent refresh
-      if (response.status === 401 && !options._isRetry && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/refresh-session')) {
-        try {
-          const cachedProfileStr = localStorage.getItem('ignou_student_profile');
-          if (cachedProfileStr) {
-            const cachedProfile = JSON.parse(cachedProfileStr);
-            const refreshRes = await fetch(buildApiUrl('/auth/refresh-session'), {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-              body: JSON.stringify({
-                studentId: cachedProfile.id,
-                email: cachedProfile.email,
-                enrollmentNumber: cachedProfile.enrollmentNumber,
-                token
-              })
-            });
-
-            if (refreshRes.ok) {
-              const refreshJson = await refreshRes.json();
-              if (refreshJson.token) {
-                localStorage.setItem('ignou_auth_token', refreshJson.token);
-                // Retry the original request with the fresh token
-                return await safeFetch<T>(endpoint, {
-                  ...options,
-                  _isRetry: true,
-                  headers: {
-                    ...headers,
-                    Authorization: `Bearer ${refreshJson.token}`
-                  }
-                });
-              }
-            }
-          }
-        } catch {
-          // If refresh attempt fails, proceed with standard error response
-        }
-      }
-
-      // If not ok (e.g. 400, 401, 403, 404)
-      const fallback = getStaticCatalogFallback(endpoint);
-      if (fallback && response.status === 404) {
-        return {
-          data: fallback as T,
-          ok: true,
-          status: 200
-        };
-      }
-
-      return {
-        data: parsedData,
-        ok: false,
-        status: response.status,
-        error: parsedData?.error || parsedData?.message || `Request failed with status ${response.status}`
-      };
-    }
-
-    // If the response returned HTML (e.g. static SPA host or incorrect routing)
-    if (contentType.includes('text/html')) {
+    // If server returned HTML (e.g. Vite SPA fallback or error page)
+    if (isHtmlResponse) {
       const fallback = getStaticCatalogFallback(endpoint);
       if (fallback) {
         return {
@@ -201,50 +131,88 @@ export async function safeFetch<T = any>(
         };
       }
 
-      const htmlText = await response.text();
-      const isDocType = htmlText.trim().toLowerCase().startsWith('<!doctype') || htmlText.includes('<html');
-      const errorMsg = isDocType
-        ? `API endpoint '${endpoint}' returned HTML (SPA router fallback).`
-        : `Server returned status ${response.status}`;
-
       return {
         data: null as any,
         ok: false,
         status: response.status,
-        error: errorMsg
+        error: `Server returned HTML content instead of JSON for ${endpoint}`
       };
     }
 
-    // Try text or generic parse
-    let parsedData: any;
-    try {
-      parsedData = await response.json();
-    } catch {
-      const text = await response.text();
-      parsedData = { text };
+    // Parse JSON safely from rawText
+    let parsedData: any = null;
+    if (rawText.trim()) {
+      try {
+        parsedData = JSON.parse(rawText);
+      } catch {
+        parsedData = { text: rawText };
+      }
     }
 
-    if (!response.ok) {
-      const fallback = getStaticCatalogFallback(endpoint);
-      if (fallback && response.status === 404) {
-        return {
-          data: fallback as T,
-          ok: true,
-          status: 200
-        };
-      }
+    if (response.ok) {
       return {
-        data: parsedData,
-        ok: false,
-        status: response.status,
-        error: parsedData?.error || parsedData?.message || `Request failed with status ${response.status}`
+        data: parsedData as T,
+        ok: true,
+        status: response.status
+      };
+    }
+
+    // If 401 unauthorized due to expired token and not already retrying, attempt transparent refresh
+    if (response.status === 401 && !options._isRetry && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/refresh-session')) {
+      try {
+        const cachedProfileStr = localStorage.getItem('ignou_student_profile');
+        if (cachedProfileStr) {
+          const cachedProfile = JSON.parse(cachedProfileStr);
+          const refreshRes = await fetch(buildApiUrl('/auth/refresh-session'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify({
+              studentId: cachedProfile.id,
+              email: cachedProfile.email,
+              enrollmentNumber: cachedProfile.enrollmentNumber,
+              token
+            })
+          });
+
+          if (refreshRes.ok) {
+            const refreshText = await refreshRes.text();
+            if (!refreshText.trim().startsWith('<')) {
+              try {
+                const refreshJson = JSON.parse(refreshText);
+                if (refreshJson.token) {
+                  localStorage.setItem('ignou_auth_token', refreshJson.token);
+                  return await safeFetch<T>(endpoint, {
+                    ...options,
+                    _isRetry: true,
+                    headers: {
+                      ...headers,
+                      Authorization: `Bearer ${refreshJson.token}`
+                    }
+                  });
+                }
+              } catch {}
+            }
+          }
+        }
+      } catch {
+        // If refresh attempt fails, proceed with standard error response
+      }
+    }
+
+    const fallback = getStaticCatalogFallback(endpoint);
+    if (fallback && response.status === 404) {
+      return {
+        data: fallback as T,
+        ok: true,
+        status: 200
       };
     }
 
     return {
       data: parsedData,
-      ok: true,
-      status: response.status
+      ok: false,
+      status: response.status,
+      error: parsedData?.error || parsedData?.message || `Request failed with status ${response.status}`
     };
   } catch (netErr: any) {
     const fallback = getStaticCatalogFallback(endpoint);

@@ -56,6 +56,19 @@ interface AdminDashboardProps {
   onNavigate: (page: string, params?: Record<string, any>) => void;
 }
 
+async function safeJson<T = any>(res: Response | null | undefined): Promise<T | null> {
+  if (!res) return null;
+  try {
+    const text = await res.text();
+    if (!text || text.trim().startsWith('<')) {
+      return null;
+    }
+    return JSON.parse(text) as T;
+  } catch {
+    return null;
+  }
+}
+
 export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ initialTab, onNavigate }) => {
   const { user, getAuthHeaders, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<'overview' | 'students' | 'login-history' | 'projects' | 'orders' | 'downloads' | 'audit' | 'settings'>(
@@ -146,9 +159,9 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ initialTab, 
   const fetchInsforgeStatus = async () => {
     try {
       const res = await fetch('/api/insforge/status');
-      if (res.ok) {
-        const data = await res.json();
-        setInsforgeStatus(data);
+      if (res && res.ok) {
+        const data = await safeJson(res);
+        if (data) setInsforgeStatus(data);
       }
     } catch {
       // ignore
@@ -160,9 +173,9 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ initialTab, 
     setInsforgeSyncMsg(null);
     try {
       const res = await fetch('/api/insforge/sync', { method: 'POST' });
-      if (res.ok) {
-        const data = await res.json();
-        setInsforgeSyncMsg(data.message || 'Synced successfully!');
+      if (res && res.ok) {
+        const data = await safeJson(res);
+        setInsforgeSyncMsg(data?.message || 'Synced successfully!');
         fetchInsforgeStatus();
       }
     } catch (err: any) {
@@ -184,12 +197,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ initialTab, 
       ]);
 
       if (stuRes && stuRes.ok) {
-        const data = await stuRes.json();
-        setAllStudents(data.students || []);
+        const data = await safeJson(stuRes);
+        if (data?.students) setAllStudents(data.students);
       }
       if (dlRes && dlRes.ok) {
-        const data = await dlRes.json();
-        setFirestoreDownloads(data.downloads || []);
+        const data = await safeJson(dlRes);
+        if (data?.downloads) setFirestoreDownloads(data.downloads);
       }
     } catch (err: any) {
       setFirestoreError(err.message || 'Failed to load students data');
@@ -217,11 +230,19 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ initialTab, 
         fetch('/api/admin/audit-logs', { headers: getAuthHeaders() }).catch(() => null)
       ]);
 
-      if (topRes && topRes.ok) setTopics((await topRes.json()).topics || []);
-      if (progRes && progRes.ok) setPrograms((await progRes.json()).programs || []);
-      if (ordRes && ordRes.ok) setOrders((await ordRes.json()).orders || []);
-      if (jobRes && jobRes.ok) setJobs((await jobRes.json()).jobs || []);
-      if (auditRes && auditRes.ok) setAuditLogs((await auditRes.json()).auditLogs || []);
+      const [topData, progData, ordData, jobData, auditData] = await Promise.all([
+        safeJson(topRes),
+        safeJson(progRes),
+        safeJson(ordRes),
+        safeJson(jobRes),
+        safeJson(auditRes)
+      ]);
+
+      if (topData?.topics) setTopics(topData.topics);
+      if (progData?.programs) setPrograms(progData.programs);
+      if (ordData?.orders) setOrders(ordData.orders);
+      if (jobData?.jobs) setJobs(jobData.jobs);
+      if (auditData?.auditLogs) setAuditLogs(auditData.auditLogs);
     } catch (err) {
       console.warn('Auxiliary admin data fetch notice:', err);
     }
@@ -238,12 +259,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ initialTab, 
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...getAuthHeaders() }
       });
-      const data = await res.json();
-      if (res.ok) {
+      const data = await safeJson(res);
+      if (res && res.ok) {
         showNotification('Order approved & project generation unlocked');
         setOrders((prev) => prev.map((o) => (o.orderId === orderId ? { ...o, status: 'PAID' } : o)));
       } else {
-        showNotification(data.error || 'Failed to approve order');
+        showNotification(data?.error || 'Failed to approve order');
       }
     } catch {
       showNotification('Error approving order');
@@ -259,12 +280,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ initialTab, 
         headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify({ reason })
       });
-      const data = await res.json();
-      if (res.ok) {
+      const data = await safeJson(res);
+      if (res && res.ok) {
         showNotification('Order marked as rejected');
         setOrders((prev) => prev.map((o) => (o.orderId === orderId ? { ...o, status: 'REJECTED', rejectionReason: reason } : o)));
       } else {
-        showNotification(data.error || 'Failed to reject order');
+        showNotification(data?.error || 'Failed to reject order');
       }
     } catch {
       showNotification('Error rejecting order');
@@ -376,12 +397,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ initialTab, 
         body: JSON.stringify(addStudentForm)
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to save student record');
+      const data = await safeJson(res);
+      if (!res || !res.ok) {
+        throw new Error(data?.error || 'Failed to save student record');
       }
 
-      showNotification(`Student ${data.student?.name || addStudentForm.name} saved successfully!`);
+      showNotification(`Student ${data?.student?.name || addStudentForm.name} saved successfully!`);
       setShowAddStudentModal(false);
       setAddStudentForm({
         studentId: '',
@@ -417,9 +438,9 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ initialTab, 
         body: JSON.stringify(editStudentModal)
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to update student record');
+      const data = await safeJson(res);
+      if (!res || !res.ok) {
+        throw new Error(data?.error || 'Failed to update student record');
       }
 
       showNotification(`Student profile updated successfully.`);
@@ -441,9 +462,9 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ initialTab, 
         method: 'DELETE',
         headers: getAuthHeaders()
       });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to delete student');
+      const data = await safeJson(res);
+      if (!res || !res.ok) {
+        throw new Error(data?.error || 'Failed to delete student');
       }
       showNotification(`Student record removed from repository.`);
       setDeleteConfirmStudent(null);
@@ -495,13 +516,13 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ initialTab, 
         headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify({ status: newStatus })
       });
-      const data = await res.json();
-      if (res.ok) {
+      const data = await safeJson(res);
+      if (res && res.ok) {
         showNotification(`Student status updated to ${newStatus}`);
         setStatusModalStudent(null);
         fetchStudentsAndDownloads();
       } else {
-        showNotification(`Failed to update status: ${data.error || 'Request failed'}`);
+        showNotification(`Failed to update status: ${data?.error || 'Request failed'}`);
       }
     } catch (err: any) {
       showNotification(`Failed to update status: ${err.message || 'Error occurred'}`);

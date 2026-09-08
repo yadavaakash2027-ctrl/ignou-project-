@@ -36,9 +36,12 @@ export async function downloadProjectFile(options: DownloadOptions): Promise<voi
     if (!response.ok) {
       let errorMsg = `Download failed (HTTP ${response.status})`;
       try {
-        const errorData = await response.json();
-        if (errorData?.error) {
-          errorMsg = errorData.error;
+        const errText = await response.text();
+        if (errText && !errText.trim().startsWith('<')) {
+          const errorData = JSON.parse(errText);
+          if (errorData?.error) {
+            errorMsg = errorData.error;
+          }
         }
       } catch {
         // Not JSON

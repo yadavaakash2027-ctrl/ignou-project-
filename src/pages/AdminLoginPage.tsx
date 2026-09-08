@@ -58,11 +58,18 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onNavigate }) =>
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: forgotIdentifier.trim() })
       });
-      const data = await res.json();
+      let data: any = null;
+      try {
+        const text = await res.text();
+        if (text && !text.trim().startsWith('<')) {
+          data = JSON.parse(text);
+        }
+      } catch {}
+
       if (res.ok) {
-        setForgotSuccess(data.message || 'Security reset instructions dispatched.');
+        setForgotSuccess(data?.message || 'Security reset instructions dispatched.');
       } else {
-        setForgotError(data.error || 'Failed to dispatch reset instructions.');
+        setForgotError(data?.error || 'Failed to dispatch reset instructions.');
       }
     } catch (err: any) {
       setForgotError(err.message || 'Network error while contacting security subsystem.');
