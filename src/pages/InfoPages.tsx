@@ -22,10 +22,10 @@ export const AboutPage: React.FC<{ onNavigate: (page: string) => void }> = ({ on
     </button>
     <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 p-8 shadow-sm space-y-6">
       <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white">
-        About IGNOU Project Hub
+        About IGNOU Project
       </h1>
       <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-        IGNOU Project Hub was engineered to solve the persistent challenges faced by distance education students preparing major project reports and dissertations. Distance learners often lack direct access to continuous on-campus research methodology counseling, statistical modeling software, and structured dissertation blueprints.
+        IGNOU Project was engineered to solve the persistent challenges faced by distance education students preparing major project reports and dissertations. Distance learners often lack direct access to continuous on-campus research methodology counseling, statistical modeling software, and structured dissertation blueprints.
       </p>
       <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
         Our specialized academic synthesis engine generates comprehensive, 150+ page research frameworks adhering strictly to the structural and methodological requirements laid down by IGNOU faculties across Management (MBA), Commerce (M.Com, B.Com), Computer Sciences (BCA, MCA, PGDCA), and Social Sciences (BA/BAG).
@@ -196,7 +196,7 @@ export const TermsPage: React.FC<{ onNavigate: (page: string) => void }> = ({ on
     </button>
     <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 p-8 shadow-sm space-y-4 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
       <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white mb-4">Terms & Conditions</h1>
-      <p>By accessing and purchasing academic project drafts from IGNOU Project Hub, candidates acknowledge that all generated documents serve exclusively as educational references and draft frameworks.</p>
+      <p>By accessing and purchasing academic project drafts from IGNOU Project, candidates acknowledge that all generated documents serve exclusively as educational references and draft frameworks.</p>
       <p>Candidates are solely responsible for reviewing and updating their project with real field survey data before submitting to their respective IGNOU regional study centers.</p>
     </div>
   </div>

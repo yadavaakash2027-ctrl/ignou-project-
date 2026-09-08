@@ -960,7 +960,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ initialTab, 
                   </div>
                   <h3 className="text-sm font-bold text-white flex items-center gap-2">
                     <span>Project:</span>
-                    <span className="text-indigo-300 font-mono">IGNOU PROJECT HUB</span>
+                    <span className="text-indigo-300 font-mono">IGNOU PROJECT</span>
                   </h3>
                   <p className="text-xs text-slate-300">
                     Host: <span className="font-mono text-slate-400">{insforgeStatus.projectUrl}</span> &bull; Stored Records: <span className="font-bold text-emerald-400">{insforgeStatus.totalStudents}</span>

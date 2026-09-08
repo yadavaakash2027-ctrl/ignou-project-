@@ -49,7 +49,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, onNavigate }) => {
       {/* Top Banner Notice */}
       <div className="bg-blue-900 dark:bg-blue-950 text-blue-100 text-xs px-4 py-1 text-center flex items-center justify-center gap-2 font-medium">
         <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-        <span>IGNOU Project Hub — 150+ Page Academic Project Drafts, Synopses & Topic Allocator for 2025–26</span>
+        <span>IGNOU Project — 150+ Page Academic Project Drafts, Synopses & Topic Allocator for 2025–26</span>
         <span className="hidden md:inline text-blue-300">| Standardized IGNOU Guidelines</span>
       </div>
 
@@ -66,7 +66,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, onNavigate }) => {
             </div>
             <div>
               <div className="text-lg font-bold text-slate-900 dark:text-white leading-tight tracking-tight flex items-center gap-1.5">
-                IGNOU PROJECT HUB
+                IGNOU PROJECT
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-semibold uppercase">
                   Academic
                 </span>

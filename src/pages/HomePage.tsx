@@ -259,7 +259,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
               The 4-Step Academic Engineering Process
             </h2>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-              How IGNOU Project Hub synthesizes, formats, validates, and serves 150+ page dissertations
+              How IGNOU Project synthesizes, formats, validates, and serves 150+ page dissertations
             </p>
           </div>
 

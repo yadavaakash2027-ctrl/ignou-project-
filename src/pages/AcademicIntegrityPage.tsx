@@ -25,13 +25,13 @@ export const AcademicIntegrityPage: React.FC<AcademicIntegrityPageProps> = ({ on
               Academic Integrity & Research Ethics Policy
             </h1>
             <p className="text-xs text-red-700 dark:text-red-300 mt-0.5">
-              Official Candidate Usage Mandates for IGNOU Project Hub Drafts
+              Official Candidate Usage Mandates for IGNOU Project Drafts
             </p>
           </div>
         </div>
 
         <p className="text-xs sm:text-sm text-red-800 dark:text-red-200 leading-relaxed">
-          All generated projects, synopses, empirical tables, and dissertations provided by IGNOU Project Hub are strictly classified as <strong>academic research drafts and structural reference materials</strong> designed to assist students in understanding methodology, chapter structuring, data visualization, and theoretical modeling.
+          All generated projects, synopses, empirical tables, and dissertations provided by IGNOU Project are strictly classified as <strong>academic research drafts and structural reference materials</strong> designed to assist students in understanding methodology, chapter structuring, data visualization, and theoretical modeling.
         </p>
       </div>
 
@@ -69,7 +69,7 @@ export const AcademicIntegrityPage: React.FC<AcademicIntegrityPageProps> = ({ on
         <div className="pt-4 border-t border-slate-100 dark:border-slate-700 text-xs text-slate-500">
           <h3 className="font-bold text-slate-700 dark:text-slate-300 mb-1">Non-Affiliation Disclaimer</h3>
           <p>
-            IGNOU Project Hub is an independent academic software platform and is not affiliated with, sponsored by, or endorsed by Indira Gandhi National Open University (IGNOU). IGNOU, course codes, and curriculum references are used solely for descriptive educational identification purposes.
+            IGNOU Project is an independent academic software platform and is not affiliated with, sponsored by, or endorsed by Indira Gandhi National Open University (IGNOU). IGNOU, course codes, and curriculum references are used solely for descriptive educational identification purposes.
           </p>
         </div>
       </div>

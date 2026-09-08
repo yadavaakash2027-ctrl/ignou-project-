@@ -44,13 +44,13 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold">
                 <GraduationCap className="w-6 h-6" />
               </div>
-              <span className="text-lg font-bold text-white tracking-tight">IGNOU PROJECT HUB</span>
+              <span className="text-lg font-bold text-white tracking-tight">IGNOU PROJECT</span>
             </div>
             <p className="text-sm text-slate-400 leading-relaxed pr-6">
               The dedicated academic project preparation, atomic topic allocation, and 150+ page dissertation compiler platform for IGNOU students across BCA, MCA, B.Com, M.Com, MBA, PGDCA, and BA/BAG disciplines.
             </p>
             <div className="text-xs text-amber-300/90 bg-amber-950/40 border border-amber-800/50 rounded-lg p-2.5">
-              ⚠️ <strong>Independent Disclaimer:</strong> IGNOU Project Hub is an independent educational platform and is not affiliated with, endorsed by, or representative of Indira Gandhi National Open University.
+              ⚠️ <strong>Independent Disclaimer:</strong> IGNOU Project is an independent educational platform and is not affiliated with, endorsed by, or representative of Indira Gandhi National Open University.
             </div>
           </div>
 
@@ -168,7 +168,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
 
         {/* Bottom copyright */}
         <div className="mt-12 pt-6 border-t border-slate-800 text-center text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p>© {new Date().getFullYear()} IGNOU Project Hub. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} IGNOU Project. All rights reserved.</p>
           <div className="flex items-center gap-6">
             <span className="flex items-center gap-1.5 text-slate-400">
               <FileCheck className="w-4 h-4 text-blue-400" /> Guaranteed 150+ Actual PDF Pages
