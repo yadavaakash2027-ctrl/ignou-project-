@@ -40,13 +40,25 @@ export async function executeInsForgeSql(query: string): Promise<{ rows: any[]; 
       body: JSON.stringify({ query })
     });
 
+    const rawText = await response.text();
+
     if (!response.ok) {
-      const errText = await response.text();
-      console.error('[InsForge SQL Error]:', response.status, errText);
-      return { rows: [], error: errText };
+      console.error('[InsForge SQL Error]:', response.status, rawText);
+      return { rows: [], error: rawText || `HTTP ${response.status}` };
     }
 
-    const data = await response.json();
+    if (!rawText || !rawText.trim()) {
+      return { rows: [], rowCount: 0 };
+    }
+
+    let data: any = {};
+    try {
+      data = JSON.parse(rawText);
+    } catch (parseErr: any) {
+      console.warn('[InsForge Parse Warning]:', parseErr.message, 'Raw text:', rawText);
+      return { rows: [], rowCount: 0, error: parseErr.message };
+    }
+
     return { rows: data.rows || [], rowCount: data.rowCount };
   } catch (err: any) {
     console.error('[InsForge Request Failed]:', err?.message || err);
