@@ -27,7 +27,7 @@ function sanitizeSqlString(val: string | null | undefined): string {
 /**
  * Execute raw SQL query against the InsForge PostgreSQL database
  */
-export async function executeInsForgeSql(query: string): Promise<{ rows: any[]; rowCount?: number; error?: string }> {
+export async function executeInsForgeSql(query: string): Promise<{ rows: any[]; rowCount?: number; error?: string; isDuplicate?: boolean }> {
   try {
     const endpoint = `${INSFORGE_PROJECT_URL.replace(/\/$/, '')}/api/database/advance/rawsql`;
     const response = await fetch(endpoint, {
@@ -43,8 +43,11 @@ export async function executeInsForgeSql(query: string): Promise<{ rows: any[]; 
     const rawText = await response.text();
 
     if (!response.ok) {
-      console.error('[InsForge SQL Error]:', response.status, rawText);
-      return { rows: [], error: rawText || `HTTP ${response.status}` };
+      const isDuplicate = response.status === 409 || rawText.includes('DATABASE_DUPLICATE') || rawText.includes('duplicate key');
+      if (!isDuplicate) {
+        console.error('[InsForge SQL Error]:', response.status, rawText);
+      }
+      return { rows: [], error: rawText || `HTTP ${response.status}`, isDuplicate };
     }
 
     if (!rawText || !rawText.trim()) {
@@ -90,7 +93,7 @@ export async function initInsForgeDatabase(): Promise<boolean> {
       updated_at TIMESTAMPTZ DEFAULT NOW()
     );
     CREATE UNIQUE INDEX IF NOT EXISTS idx_students_email ON students (LOWER(email));
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_students_enrollment ON students (UPPER(enrollment_number));
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_students_enrollment ON students (UPPER(enrollment_number)) WHERE enrollment_number IS NOT NULL AND enrollment_number != '';
     GRANT ALL ON students TO anon, authenticated, postgres;
   `;
 
@@ -127,7 +130,46 @@ export async function storeStudentInInsForge(student: InsForgeStudentData): Prom
     const cleanStatus = (student.accountStatus || 'ACTIVE').trim();
     const nowIso = new Date().toISOString();
 
-    const upsertSql = `
+    // Check if an existing record matches by ID, email, or enrollment number
+    const matchConditions: string[] = [
+      `id = ${sanitizeSqlString(cleanId)}`,
+      `LOWER(email) = ${sanitizeSqlString(cleanEmail)}`
+    ];
+    if (cleanEnrollment) {
+      matchConditions.push(`UPPER(enrollment_number) = ${sanitizeSqlString(cleanEnrollment)}`);
+    }
+
+    const checkSql = `SELECT id FROM students WHERE ${matchConditions.join(' OR ')} LIMIT 1;`;
+    const checkRes = await executeInsForgeSql(checkSql);
+
+    if (checkRes.rows && checkRes.rows.length > 0) {
+      const existingId = checkRes.rows[0].id;
+      const updateSql = `
+        UPDATE students SET
+          name = ${sanitizeSqlString(cleanName)},
+          email = ${sanitizeSqlString(cleanEmail)},
+          enrollment_number = ${sanitizeSqlString(cleanEnrollment)},
+          "enrollmentNumber" = ${sanitizeSqlString(cleanEnrollment)},
+          mobile_number = ${sanitizeSqlString(cleanMobile)},
+          "mobileNumber" = ${sanitizeSqlString(cleanMobile)},
+          program = ${sanitizeSqlString(cleanProgram)},
+          course_year = ${sanitizeSqlString(cleanCourseYear)},
+          study_center_code = ${sanitizeSqlString(cleanStudyCenter)},
+          role = ${sanitizeSqlString(cleanRole)},
+          account_status = ${sanitizeSqlString(cleanStatus)},
+          last_login_at = ${sanitizeSqlString(student.lastLoginAt || nowIso)},
+          updated_at = NOW()
+        WHERE id = ${sanitizeSqlString(existingId)};
+      `;
+      const updateRes = await executeInsForgeSql(updateSql);
+      if (!updateRes.error) {
+        console.log(`[InsForge] Student synchronized successfully (updated): ${cleanName} (${cleanEnrollment} / ${cleanEmail})`);
+        return true;
+      }
+    }
+
+    // If no existing record was found, insert a new record
+    const insertSql = `
       INSERT INTO students (
         id,
         name,
@@ -177,13 +219,13 @@ export async function storeStudentInInsForge(student: InsForgeStudentData): Prom
         updated_at = NOW();
     `;
 
-    const res = await executeInsForgeSql(upsertSql);
+    const res = await executeInsForgeSql(insertSql);
     if (!res.error) {
       console.log(`[InsForge] Successfully stored student in database: ${cleanName} (${cleanEnrollment} / ${cleanEmail})`);
       return true;
     } else {
-      // If conflict on email or enrollment with a different ID, update the existing row
-      if (res.error.includes('duplicate key') || res.error.includes('DATABASE_DUPLICATE')) {
+      // If a race-condition duplicate key occurred, update the matching record
+      if (res.isDuplicate || res.error.includes('duplicate key') || res.error.includes('DATABASE_DUPLICATE')) {
         const updateSql = `
           UPDATE students SET
             name = ${sanitizeSqlString(cleanName)},
@@ -200,11 +242,10 @@ export async function storeStudentInInsForge(student: InsForgeStudentData): Prom
         `;
         const updateRes = await executeInsForgeSql(updateSql);
         if (!updateRes.error) {
-          console.log(`[InsForge] Updated existing student by email/enrollment: ${cleanName} (${cleanEnrollment} / ${cleanEmail})`);
+          console.log(`[InsForge] Updated existing student after duplicate resolution: ${cleanName} (${cleanEnrollment} / ${cleanEmail})`);
           return true;
         }
       }
-      console.error(`[InsForge] Failed to store student ${cleanId}:`, res.error);
       return false;
     }
   } catch (err: any) {

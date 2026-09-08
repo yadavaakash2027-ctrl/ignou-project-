@@ -49,8 +49,7 @@ interface DatabaseSchema {
   };
 }
 
-const isServerless = !!(process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.VERCEL);
-export const DATA_DIR = process.env.DATA_DIR || (isServerless ? path.join('/tmp', 'ignou_data') : path.join(process.cwd(), 'data'));
+export const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), 'data');
 export const DB_FILE = path.join(DATA_DIR, 'database.json');
 export const STORAGE_DIR = path.join(DATA_DIR, 'generated_files');
 
